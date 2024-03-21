@@ -1,0 +1,53 @@
+/*
+CustomersDatabase Data Exploration 
+
+Skills used: Joins, CTE's, Temp Tables, Windows Functions, Aggregate Functions, Creating Views, Converting Data Types
+
+*/
+
+-- Determine the top 3 product categories with the highest total overall spend. 
+-- Query should return a table with the product category and total spend in that category.
+
+SELECT productcategory,
+	   SUM(transactionamount) AS totalspend
+FROM transactions
+GROUP BY productcategory
+ORDER BY totalspend DESC
+LIMIT 3;
+
+-- Determine the average transaction by the customer for the top category. 
+-- Query should return a table with the customer's ID name, top category identified in the prior question and average spend by customer in that category.
+
+SELECT id, name, productcategory, AVG(transactionamount) AS  Averagespend
+FROM customers LEFT JOIN transactions
+ON id=transactions.customer_id
+WHERE productcategory = "men's clothing" 
+GROUP BY id, name
+ORDER BY Averagespend DESC;
+
+
+-- For customers who spend at least $200 in any category, determine the category they spent the most money in during 2022.
+-- Query should return a table with at least the customer's names, top category, and total spend
+
+WITH TopCategoryPerCustomer AS (
+    SELECT customer_id, productcategory, SUM(transactionamount) AS TotalSpendPerCategory,
+    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY SUM(transactionamount) DESC) AS CategoryRank
+    FROM
+    transactions
+    WHERE
+    transactionamount >= 200
+    AND date LIKE '-%22%-'
+    GROUP BY
+    customer_id, productcategory
+)
+
+SELECT
+customers.name, TopCategoryPerCustomer.productcategory AS TopCategory,SUM(TopCategoryPerCustomer.TotalSpendPerCategory) AS TotalSpend
+FROM
+customers
+LEFT JOIN
+TopCategoryPerCustomer ON customers.id = TopCategoryPerCustomer.customer_id AND TopCategoryPerCustomer.CategoryRank = 1
+GROUP BY
+customers.name, TopCategoryPerCustomer.productcategory
+ORDER BY
+TotalSpend DESC;
