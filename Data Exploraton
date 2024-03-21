@@ -51,3 +51,70 @@ GROUP BY
 customers.name, TopCategoryPerCustomer.productcategory
 ORDER BY
 TotalSpend DESC;
+
+-- Determine how many customers fall into the bronze, silver and gold category as of the end of 2022. 
+-- Your output should consist of a table with 2 columns (status and count) and 3 rows (bronze, silver, gold)
+
+QUERY
+SELECT loyaltystatus, COUNT (customer_id) AS CustomerCount
+FROM status
+WHERE date LIKE '%-22%'
+GROUP by loyaltystatus
+ORDER BY CustomerCount DESC;
+
+-- Create a table which shows the total average spend by category for each customer, along with their customer ID, name, and latest loyalty status
+
+QUERY
+WITH LatestLoyaltyStatus AS (
+    SELECT
+        customer_id,
+        MAX(date) AS latest_status_date,
+        FIRST_VALUE(loyaltystatus) OVER (PARTITION BY customer_id ORDER BY date DESC) AS latest_loyalty_status
+    FROM
+        status
+    GROUP BY
+       customer_id
+)
+
+SELECT customers.id, customers.name, LatestLoyaltyStatus.latest_loyalty_status, SUM(transactions.transactionamount) AS TotalSpend, 
+	AVG(transactions.transactionamount) AS AverageSpend
+FROM
+    customers
+JOIN
+    transactions ON customers.id = transactions.customer_id
+JOIN
+    LatestLoyaltyStatus ON customers.id = LatestLoyaltyStatus.customer_id   
+GROUP BY   customers.id, customers.name, LatestLoyaltyStatus.latest_loyalty_status
+
+
+-- Write a query to return the names and loyalty statuses of the top 3 customers who spent the most money.
+
+WITH LatestLoyaltyStatus AS (
+    SELECT
+        customer_id,
+        MAX(date) AS latest_status_date,
+        FIRST_VALUE(loyaltystatus) OVER (PARTITION BY customer_id ORDER BY date DESC) AS latest_loyalty_status
+    FROM
+        status
+    GROUP BY
+       customer_id
+)
+
+SELECT customers.id, customers.name, LatestLoyaltyStatus.latest_loyalty_status, SUM(transactions.transactionamount) AS TotalSpend, 
+	AVG(transactions.transactionamount) AS AverageSpend
+FROM
+    customers
+JOIN
+    transactions ON customers.id = transactions.customer_id
+JOIN
+    LatestLoyaltyStatus ON customers.id = LatestLoyaltyStatus.customer_id   
+GROUP BY   customers.id, customers.name, LatestLoyaltyStatus.latest_loyalty_status
+
+-- Determine the average spend by city on household items for 2022. Query should return a table with the city name and corresponding average spend in the given category.
+
+SELECT city, AVG(transactionamount) AS AverageCitySpend
+FROM transactions
+WHERE productcategory = "household items"
+GROUP BY city
+ORDER BY AverageCitySpend;
+
